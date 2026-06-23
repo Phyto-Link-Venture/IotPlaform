@@ -1,0 +1,47 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+artifacts/
+*.user
+*.suo
+
+# .NET
+project.lock.json
+project.fragment.lock.json
+*.nupkg
+.dotnet/
+
+# Rider / VS / VS Code
+.idea/
+.vs/
+.vscode/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pfx
+appsettings.*.Local.json
+
+# Data Protection key ring (never commit)
+keys/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker
+docker/volumes/
