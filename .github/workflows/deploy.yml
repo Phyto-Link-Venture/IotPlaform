@@ -1,0 +1,92 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main      # → production
+      - staging   # → staging
+
+jobs:
+  # Self-hosted runner (already running on the VPS) picks up this job.
+  # No docker-build needed — the runner's local Docker builds the image directly.
+  deploy:
+    name: Deploy to VPS
+    runs-on: [self-hosted]  # Tag matching the runner registered on 72.60.108.40
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set deployment vars
+        id: vars
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "env_name=production" >> $GITHUB_OUTPUT
+            echo "backend_domain=iotproductionbackend.phytolink-venture.com" >> $GITHUB_OUTPUT
+            echo "frontend_domain=iotproductionfrontend.phytolink-venture.com" >> $GITHUB_OUTPUT
+            echo "api_port=8080" >> $GITHUB_OUTPUT
+          else
+            echo "env_name=staging" >> $GITHUB_OUTPUT
+            echo "backend_domain=iotstagingbackend.phytolink-venture.com" >> $GITHUB_OUTPUT
+            echo "frontend_domain=iotstagingfrontend.phytolink-venture.com" >> $GITHUB_OUTPUT
+            echo "api_port=8081" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build backend
+        run: |
+          docker build -f docker/api.Dockerfile -t iotplatform-api:${{ steps.vars.outputs.env_name }} .
+
+      - name: Deploy backend
+        run: |
+          # Stop old container (if running)
+          docker stop iotplatform-api-${{ steps.vars.outputs.env_name }} || true
+          docker rm -f iotplatform-api-${{ steps.vars.outputs.env_name }} || true
+
+          # Run new container
+          docker run -d \
+            --name iotplatform-api-${{ steps.vars.outputs.env_name }} \
+            --restart unless-stopped \
+            -p ${{ steps.vars.outputs.api_port }}:8080 \
+            -v iotplatform-dataprotection-${{ steps.vars.outputs.env_name }}:/app/keys \
+            -v iotplatform-logs-${{ steps.vars.outputs.env_name }}:/app/logs \
+            -e ASPNETCORE_ENVIRONMENT=Production \
+            -e ConnectionStrings__Postgres="Host=postgres;Port=5432;Database=iotplatform_${{ steps.vars.outputs.env_name }};Username=iotplatform;Password=${{ secrets.DB_PASSWORD }}" \
+            -e Jwt__SigningKey="${{ secrets.JWT_SIGNING_KEY }}" \
+            -e Mqtt__Host="localhost" \
+            --network iotplatform-network \
+            iotplatform-api:${{ steps.vars.outputs.env_name }}
+
+      - name: Build frontend
+        run: |
+          docker build \
+            -f docker/frontend.Dockerfile \
+            --build-arg NEXT_PUBLIC_API_BASE_URL=https://${{ steps.vars.outputs.backend_domain }} \
+            -t iotplatform-frontend:${{ steps.vars.outputs.env_name }} \
+            .
+
+      - name: Deploy frontend
+        run: |
+          docker stop iotplatform-frontend-${{ steps.vars.outputs.env_name }} || true
+          docker rm -f iotplatform-frontend-${{ steps.vars.outputs.env_name }} || true
+
+          FRONTEND_PORT="3000"
+          if [ "${{ steps.vars.outputs.env_name }}" == "staging" ]; then FRONTEND_PORT="3001"; fi
+
+          docker run -d \
+            --name iotplatform-frontend-${{ steps.vars.outputs.env_name }} \
+            --restart unless-stopped \
+            -p $FRONTEND_PORT:3000 \
+            --network iotplatform-network \
+            iotplatform-frontend:${{ steps.vars.outputs.env_name }}
+
+      - name: Health check
+        run: |
+          sleep 5
+          curl -f http://localhost:${{ steps.vars.outputs.api_port }}/swagger/ || exit 1
+          echo "✓ Backend health check passed"
+
+      - name: Slack notification (optional)
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          echo "Deploy to ${{ steps.vars.outputs.env_name }} finished: $STATUS"
+          # Add Slack webhook URL as a secret if you want notifications
