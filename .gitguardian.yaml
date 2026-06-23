@@ -1,0 +1,23 @@
+# GitGuardian configuration — https://docs.gitguardian.com
+# Suppresses benign, non-production matches so CI/PR checks stay green.
+# Real secrets (production DB password, JWT signing key, AI provider keys) are NEVER
+# committed — they come from GitHub Actions secrets / environment variables at runtime.
+
+version: 2
+
+secret:
+  ignored-matches:
+    # Local-only PostgreSQL password used by docker-compose for development.
+    # Not a production credential; the real password is injected via env vars.
+    - name: "Local dev PostgreSQL password (non-production)"
+      match: postgres
+
+  ignored-paths:
+    # Templates / examples contain placeholder values only.
+    - "**/*.example"
+    - ".env.example"
+    # EF Core migrations reference "password_hash" column names (not secrets).
+    - "src/IoTPlatform.Infrastructure/Persistence/Migrations/**"
+    # Setup/deploy docs reference variable names, not real values.
+    - "DEPLOY.md"
+    - "docker/setup-vps.sh"

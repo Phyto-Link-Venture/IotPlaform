@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using IoTPlatform.API.Authentication;
 using IoTPlatform.API.Authorization;
@@ -37,6 +38,22 @@ builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<JwtTokenService>();
 
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+
+// The signing key must come from configuration (env var / secret). In Development we
+// generate an ephemeral key so the app runs without configuration; outside Development a
+// missing key is a hard failure. No secret is ever hardcoded here.
+if (string.IsNullOrWhiteSpace(jwt.SigningKey))
+{
+    if (!builder.Environment.IsDevelopment())
+        throw new InvalidOperationException(
+            "Jwt:SigningKey is not configured. Set it via the Jwt__SigningKey environment variable / secret.");
+
+    jwt.SigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+}
+
+// Ensure JwtTokenService (via IOptions) sees the resolved key.
+builder.Services.Configure<JwtOptions>(o => o.SigningKey = jwt.SigningKey);
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -48,8 +65,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwt.Issuer,
             ValidAudience = jwt.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwt.SigningKey ?? "dev-only-insecure-signing-key-change-me-please")),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey)),
         };
     });
 

@@ -59,24 +59,23 @@ echo "[6/8] Starting shared infrastructure (PostgreSQL + Mosquitto)..."
 cd "$REPO_DIR"
 docker compose up -d postgres mosquitto
 
-# 7. Install Nginx + Certbot
-echo "[7/8] Installing Nginx + Certbot..."
-sudo apt-get install -y nginx certbot python3-certbot-nginx
+# 7. Start Caddy reverse proxy (automatic Let's Encrypt TLS for all 4 subdomains)
+echo "[7/8] Starting Caddy reverse proxy..."
+# Caddy joins the shared network and issues/renews certs automatically once DNS resolves.
+sudo cp "$REPO_DIR/docker/caddy/Caddyfile" /home/iotplatform/Caddyfile
+docker rm -f caddy || true
+docker run -d \
+  --name caddy \
+  --restart unless-stopped \
+  --network iotplatform-network \
+  -p 80:80 -p 443:443 -p 443:443/udp \
+  -v /home/iotplatform/Caddyfile:/etc/caddy/Caddyfile:ro \
+  -v caddy-data:/data \
+  -v caddy-config:/config \
+  caddy:2
 
-# Copy Nginx config
-sudo cp docker/nginx/nginx.conf /etc/nginx/nginx.conf
-sudo mkdir -p /var/www/certbot
-sudo nginx -t
-sudo systemctl restart nginx
-
-# 8. Issue SSL certificates (requires DNS to be pointing already)
-echo "[8/8] Issuing SSL certificates (this may fail if DNS doesn't point to $VPS_IP yet)..."
-for domain in iotproductionbackend.$DOMAIN iotproductionfrontend.$DOMAIN iotstagingbackend.$DOMAIN iotstagingfrontend.$DOMAIN; do
-  sudo certbot certonly --nginx -d "$domain" --non-interactive --agree-tos --email admin@$DOMAIN --no-eff-email || \
-    echo "Note: Failed for $domain (DNS may not be configured yet; retry later with: sudo certbot renew)"
-done
-
-sudo systemctl reload nginx
+echo "[8/8] Caddy started. It will obtain TLS certificates automatically once the DNS"
+echo "      A-records point to $VPS_IP (no certbot needed)."
 
 # 9. Register GitHub self-hosted runner
 echo ""
@@ -121,7 +120,7 @@ echo "=== Setup Complete ==="
 echo ""
 echo "✓ Docker + Docker Compose installed"
 echo "✓ PostgreSQL + Mosquitto running"
-echo "✓ Nginx + Certbot running (TLS)"
+echo "✓ Caddy reverse proxy running (automatic Let's Encrypt TLS)"
 echo "✓ GitHub self-hosted runner registered: $RUNNER_NAME"
 echo ""
 echo "Next steps:"

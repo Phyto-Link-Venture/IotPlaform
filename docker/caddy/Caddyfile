@@ -1,0 +1,27 @@
+# Caddy reverse proxy for IoTPlatform.
+# Caddy automatically obtains & renews Let's Encrypt TLS certificates for each domain.
+# All app containers share the `iotplatform-network` Docker network, so Caddy reaches
+# them by container name. No certs, ports, or secrets to manage by hand.
+
+{
+	# ACME contact for Let's Encrypt.
+	email admin@phytolink-venture.com
+}
+
+# --- Production ---
+iotproductionbackend.phytolink-venture.com {
+	reverse_proxy iotplatform-api-production:8080
+}
+
+iotproductionfrontend.phytolink-venture.com {
+	reverse_proxy iotplatform-frontend-production:3000
+}
+
+# --- Staging ---
+iotstagingbackend.phytolink-venture.com {
+	reverse_proxy iotplatform-api-staging:8080
+}
+
+iotstagingfrontend.phytolink-venture.com {
+	reverse_proxy iotplatform-frontend-staging:3000
+}

@@ -10,7 +10,8 @@ services:
     environment:
       POSTGRES_DB: iotplatform
       POSTGRES_USER: iotplatform
-      POSTGRES_PASSWORD: postgres
+      # Local dev default; override via POSTGRES_PASSWORD in .env (gitignored).
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -47,7 +48,7 @@ services:
         condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=iotplatform;Username=iotplatform;Password=postgres"
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=iotplatform;Username=iotplatform;Password=${POSTGRES_PASSWORD:-postgres}"
       Mqtt__Host: "mosquitto"
     ports:
       - "8080:8080"

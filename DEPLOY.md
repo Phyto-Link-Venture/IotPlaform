@@ -1,7 +1,7 @@
 # IoTPlatform Deployment Guide
 
 This guide covers deploying to **staging** (via `staging` branch) and **production** (via `main` branch)
-to your self-hosted VPS at `72.60.108.40` with **Nginx + Let's Encrypt TLS** and **GitHub Actions self-hosted runner**.
+to your self-hosted VPS at `72.60.108.40` with **Caddy (automatic Let's Encrypt TLS)** and a **GitHub Actions self-hosted runner**.
 
 ## Architecture Overview
 
@@ -14,7 +14,7 @@ Build API image + Frontend image
     ↓
 Run containers on VPS (API:8080, Frontend:3000/3001)
     ↓
-Nginx reverse proxy (TLS termination)
+Caddy reverse proxy (automatic Let's Encrypt TLS)
     ↓
 Public: https://iotproductionbackend/frontend.phytolink-venture.com
         https://iotstagingbackend/frontend.phytolink-venture.com
@@ -42,9 +42,9 @@ bash docker/setup-vps.sh
 ```
 
 This will:
-- Install Docker, Nginx, Certbot
+- Install Docker + Docker Compose
+- Start Caddy (auto-issues Let's Encrypt certs for the 4 subdomains once DNS resolves)
 - Register the self-hosted runner
-- Issue Let's Encrypt certs for the 4 subdomains
 - Start PostgreSQL + Mosquitto
 
 ### 3. Point DNS Records
@@ -121,16 +121,17 @@ docker logs iotplatform-api-staging
 docker logs iotplatform-frontend-production
 docker logs iotplatform-frontend-staging
 
-# Nginx
-sudo tail -f /var/log/nginx/access.log
-sudo tail -f /var/log/nginx/error.log
+# Caddy (reverse proxy + TLS)
+docker logs caddy
 ```
 
-### Renew SSL Certificates
-Certbot auto-renews via cron. To manually renew:
+### TLS Certificates
+Caddy obtains and **auto-renews** Let's Encrypt certificates — there is nothing to do manually.
+If a domain isn't serving HTTPS, check that its DNS A-record points to the VPS and inspect
+`docker logs caddy`. To reload after editing the Caddyfile:
 ```bash
-sudo certbot renew
-sudo systemctl reload nginx
+docker cp docker/caddy/Caddyfile caddy:/etc/caddy/Caddyfile
+docker exec caddy caddy reload --config /etc/caddy/Caddyfile
 ```
 
 ### Stop/Start Containers
@@ -195,7 +196,7 @@ docker volume prune
 ```bash
 docker restart iotplatform-api-production iotplatform-api-staging
 docker restart iotplatform-frontend-production iotplatform-frontend-staging
-sudo systemctl restart nginx
+docker restart caddy
 ```
 
 ## Security Reminders
