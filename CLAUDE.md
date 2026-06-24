@@ -208,6 +208,53 @@ current user from `ICurrentUser` and the tenant from `ITenantContext`.
 > **Monorepo decision:** frontend + backend in one repo for atomic full-stack changes, shared CI, and
 > simpler coordination. Can be split later if needed.
 
+### API Client Synchronization (Kiota)
+
+The frontend maintains a **zero-drift API client** via Kiota code generation:
+
+1. **Backend API change:** A new endpoint is added (e.g., `POST /api/devices`) or an existing one is modified
+2. **Regenerate client:** Dev runs `npm run gen` in the frontend folder (or CI runs it automatically)
+3. **Commit generated code:** The TypeScript client in `src/lib/generated/api/` is committed to git
+4. **Frontend uses it:** All components import the generated client with full type safety
+
+**Why commit generated code?**
+
+- Every dev + CI has the current types immediately (no async generation step)
+- git diff shows exactly what backend API changed (good for code review)
+- No dependency on the backend being available during frontend builds
+- Easier local development — types are always in sync with the current branch
+
+**Configuration:**
+
+- **OpenAPI spec URL (local dev):** `http://localhost:5094/swagger/v1/openapi.json` (default in `frontend/kiota.json`)
+- **OpenAPI spec URL (CI/deployment):** Set via `OPENAPI_SPEC_PATH` environment variable
+- **Generation command:** `npm run gen` in `frontend/` folder
+- **Kiota config:** `frontend/kiota.json`
+- **Generation script:** `frontend/scripts/generate-client.js`
+- **Output location:** `frontend/src/lib/generated/api/`
+
+**Workflow example:**
+
+```bash
+# Backend: add new endpoint GET /api/devices/{id}/telemetry
+# Push to branch
+
+# Frontend dev: regenerate client
+cd frontend
+npm run gen
+
+# Git now shows new generated types matching the new endpoint
+git status        # shows src/lib/generated/api/ as modified
+git add src/lib/generated/api/
+git commit -m "chore: regenerate API client after backend changes"
+
+# Use the new types in a component
+import { apiClient } from '@/lib/api';
+const telemetry = await apiClient.api.devices['{id}'].telemetry.get();
+```
+
+**CI/CD note:** The deployment pipeline runs `npm run gen` before building the frontend to ensure the generated client matches the deployed backend API version.
+
 ---
 
 ## 12. Local Development

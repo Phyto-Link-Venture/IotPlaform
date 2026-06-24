@@ -1,0 +1,23 @@
+{
+  "applicationName": "application",
+  "apiDependencies": {
+    "ApiClient": {
+      "apiDescriptionUrl": "/tmp/claude-0/-home-user-IotPlaform/67be561d-a838-5224-a976-02cfdd96c0f8/scratchpad/openapi.json",
+      "apiDeploymentBaseUrl": "/",
+      "requests": [
+        {
+          "method": "POST",
+          "uriTemplate": "api/auth/login"
+        },
+        {
+          "method": "GET",
+          "uriTemplate": "api/devices"
+        }
+      ],
+      "extensions": {
+        "x-ms-kiota-hash": "284B3231A35BEEF3890485FCD65955218576A7ABFBCB89600188279E95F26BFF",
+        "x-ms-kiota-version": "1.31.1"
+      }
+    }
+  }
+}

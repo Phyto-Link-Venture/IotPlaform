@@ -1,0 +1,13 @@
+{
+  "apiVersion": "v1.0",
+  "clientNamespaceName": "IoTPlatformApi",
+  "outputPath": "./src/lib/generated/api",
+  "openapi": {
+    "url": "http://localhost:5094/swagger/v1/openapi.json",
+    "includePath": "**"
+  },
+  "language": "typescript",
+  "clientClassName": "ApiClient",
+  "structuredMimeTypes": ["application/json"],
+  "excludePatterns": ["\\$*", "#*"]
+}

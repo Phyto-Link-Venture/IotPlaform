@@ -73,6 +73,42 @@ These are passed to the containers at deploy time.
 
 You should see `iotplatform-vps-runner` with status **Idle**.
 
+## Frontend API Client Generation (CI/CD)
+
+### Overview
+
+The frontend build process **always regenerates the API client** from the backend's OpenAPI spec to ensure type consistency. This happens automatically during CI/CD — no manual step needed.
+
+### During CI/CD Pipeline
+
+In `.github/workflows/deploy.yml` (frontend build step):
+
+```bash
+# Navigate to frontend
+cd frontend
+
+# Generate API client from the backend's OpenAPI spec
+# For staging/production, use the deployed backend's spec URL
+export OPENAPI_SPEC_PATH="https://api-staging.phytolink-venture.com/swagger/v1/openapi.json"
+npm run gen
+
+# Then build the frontend normally
+npm run build
+```
+
+**Notes:**
+
+- The generation step happens **before** the build (to ensure generated types are available during Next.js compilation)
+- The `OPENAPI_SPEC_PATH` env var can be set in GitHub Actions secrets or hardcoded per environment
+- If generation fails, the build fails — ensuring no deploy with stale types
+- The generated code is **not committed** by CI; it's regenerated fresh on every deploy
+
+### Why Regenerate on Every Deploy?
+
+1. **Version alignment:** Generated code always matches the backend API version being deployed
+2. **No stale types:** Impossible to deploy frontend code with outdated type definitions
+3. **Atomic full-stack:** Backend + frontend types are in sync by design
+
 ## Deploying Code
 
 ### To Staging

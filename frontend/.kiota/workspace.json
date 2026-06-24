@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "clients": {
+    "ApiClient": {
+      "language": "TypeScript",
+      "typeAccessModifier": "Public",
+      "structuredMimeTypes": [
+        "application/json"
+      ],
+      "clientNamespaceName": "IoTPlatformApi",
+      "usesBackingStore": false,
+      "includeAdditionalData": false,
+      "excludeBackwardCompatible": false,
+      "disabledValidationRules": [],
+      "descriptionLocation": "/tmp/claude-0/-home-user-IotPlaform/67be561d-a838-5224-a976-02cfdd96c0f8/scratchpad/openapi.json",
+      "includePatterns": [],
+      "excludePatterns": [
+        "\\$*",
+        "#*"
+      ],
+      "outputPath": "./src/lib/generated/api"
+    }
+  },
+  "plugins": {}
+}

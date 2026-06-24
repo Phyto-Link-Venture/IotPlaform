@@ -13,13 +13,18 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+    "suppressImplicitAnyIndexErrors": false,
     "plugins": [
       {
         "name": "next"
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@api": ["./src/lib/api"],
+      "@api/*": ["./src/lib/api/*"],
+      "@generated/api": ["./src/lib/generated/api"],
+      "@generated/api/*": ["./src/lib/generated/api/*"]
     }
   },
   "include": [

@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# NOTE: src/lib/generated/ is NOT ignored — we commit generated API code
+# See CLAUDE.md §11 for why generated code is tracked
