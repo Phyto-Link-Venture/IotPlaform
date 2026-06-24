@@ -4,7 +4,7 @@ namespace IoTPlatform.API.Authorization;
 
 /// <summary>
 /// Requires the current user to hold a specific permission code, e.g.
-/// <c>[HasPermission(Permissions.Device.Control)]</c>. Backed by a dynamic policy.
+/// <c>[HasPermission(Permissions.Users.CreateUser)]</c>. Backed by a dynamic policy.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
 public sealed class HasPermissionAttribute : AuthorizeAttribute

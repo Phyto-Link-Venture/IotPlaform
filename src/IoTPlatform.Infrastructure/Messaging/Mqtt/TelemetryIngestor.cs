@@ -1,4 +1,5 @@
 using System.Text.Json;
+using IoTPlatform.Common.Constants;
 using IoTPlatform.Infrastructure.Persistence;
 using IoTPlatform.Models.Entities.Iot;
 using IoTPlatform.Models.Enums;
@@ -8,9 +9,9 @@ using Microsoft.Extensions.Logging;
 namespace IoTPlatform.Infrastructure.Messaging.Mqtt;
 
 /// <summary>
-/// Default ingestor: deserializes a <see cref="TelemetryEnvelope"/>, resolves the device
-/// (and auto-provisions the sensor on first sight), then appends a telemetry row and
-/// refreshes the device's last-seen timestamp. Runs with query filters ignored because
+/// Default ingestor: deserializes a <see cref="TelemetryEnvelope"/>, resolves the device,
+/// validates the dataname_symbol, then appends a telemetry row directly at the device level
+/// and refreshes the device's last-seen timestamp. Runs with query filters ignored because
 /// MQTT ingestion has no ambient tenant/user context.
 /// </summary>
 public sealed class TelemetryIngestor(AppDbContext db, ILogger<TelemetryIngestor> logger) : ITelemetryIngestor
@@ -36,6 +37,14 @@ public sealed class TelemetryIngestor(AppDbContext db, ILogger<TelemetryIngestor
             return;
         }
 
+        if (!TelemetryConventions.IsValidDataNameSymbol(envelope.DataNameSymbol))
+        {
+            logger.LogWarning(
+                "Telemetry for device {DeviceKey} has invalid dataNameSymbol '{DataNameSymbol}'; discarded",
+                envelope.DeviceKey, envelope.DataNameSymbol);
+            return;
+        }
+
         var device = await db.Devices
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(d => d.DeviceKey == envelope.DeviceKey && !d.IsDeleted, cancellationToken);
@@ -46,29 +55,10 @@ public sealed class TelemetryIngestor(AppDbContext db, ILogger<TelemetryIngestor
             return;
         }
 
-        var sensor = await db.Sensors
-            .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(
-                s => s.DeviceId == device.Id && s.SensorType == envelope.SensorType && !s.IsDeleted,
-                cancellationToken);
-
-        if (sensor is null)
-        {
-            // Auto-provision a sensor the first time we see its type for this device.
-            sensor = new Sensor
-            {
-                Id = Guid.NewGuid(),
-                DeviceId = device.Id,
-                SensorType = envelope.SensorType,
-                Name = envelope.SensorType,
-            };
-            db.Sensors.Add(sensor);
-        }
-
         db.TelemetryData.Add(new TelemetryData
         {
             DeviceId = device.Id,
-            SensorId = sensor.Id,
+            DataNameSymbol = envelope.DataNameSymbol,
             Value = envelope.Value,
             RawPayload = payload,
             Metadata = envelope.Metadata,

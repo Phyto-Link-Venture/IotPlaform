@@ -100,7 +100,7 @@ Common is referenced by all. Models has NO project dependencies.
 - **Soft delete:** `is_deleted` flag + global query filter; rows are never hard-deleted by default.
 - **Multi-tenancy:** every tenant-scoped entity has `company_id`. A **global query filter** auto-filters by
   the current tenant (resolved from `ITenantContext`). SuperAdmin can bypass via an explicit "ignore filter" path.
-- **Time-series telemetry:** stored in `telemetry_data`, indexed on `(device_id, sensor_id, timestamp)`.
+- **Time-series telemetry:** stored in `telemetry_data`, indexed on `(device_id, dataname_symbol, timestamp)`.
   Designed so it can later move to TimescaleDB / partitioning without schema upheaval.
 
 ---
@@ -141,8 +141,8 @@ current user from `ICurrentUser` and the tenant from `ITenantContext`.
 - **user_group_members** (id, user_id, user_group_id) — many-to-many; a user can be in multiple groups
 
 ### Access control (permissions granted at the **user group** level)
-- **modules** (id, code, name, description, is_active) — Dashboard, Settings, Reports, Devices, etc.
-- **permissions** (id, module_id, code, name, action) — action ∈ {View, Create, Edit, Delete, Control, Export}
+- **modules** (id, code, name, description, is_active) — one module per **controller** (Devices, Users, Dashboard, Ai, etc.).
+- **permissions** (id, module_id, code, name, action_method, +audit) — each permission binds to a **controller action method**, not a fixed CRUD enum. `code` is `"{Controller}.{actionMethod}"` (e.g. `Users.createUser`, `Users.createSuperAdmin`, `Devices.list`); `action_method` is the method name. There is **no `PermissionAction` enum** — new permissions are added by adding a method, decorating it with `[HasPermission(...)]`, and seeding a row.
 - **user_group_permissions** (id, user_group_id, permission_id)
 
 > A user's effective permissions = union of permissions across all their user groups.
@@ -152,8 +152,7 @@ current user from `ICurrentUser` and the tenant from `ITenantContext`.
 ### IoT core
 - **device_types** (id, code, name, description, is_active, +audit)
 - **devices** (id, company_id, department_id, device_type_id, device_key/identifier, name, status, last_seen_at, +audit)
-- **sensors** (id, device_id, sensor_type, name, unit, status, +audit)
-- **telemetry_data** (id, device_id, sensor_id, value, raw_payload, timestamp, metadata jsonb)
+- **telemetry_data** (id, device_id, dataname_symbol, value, raw_payload, timestamp, metadata jsonb) — telemetry posts **directly at the device level**; the sensor layer is hidden. Each reading is identified by `dataname_symbol` (e.g. `temperature_C`, `humidity_percent`), validated against `TelemetryConventions.DataNameSymbolPattern` on ingestion. There is **no `sensors` table**.
 - **device_commands** (id, device_id, command, payload, status, issued_by, issued_at, +audit) — commands sent back to devices
 
 ### AI & MCP
@@ -175,8 +174,8 @@ current user from `ICurrentUser` and the tenant from `ITenantContext`.
 ## 8. Security & Authorization
 
 - **AuthN:** JWT Bearer. Access + refresh tokens. Passwords hashed with ASP.NET Core Identity hasher (PBKDF2).
-- **AuthZ:** permission-based via a policy provider. `[HasPermission("Device.Control")]` maps to a policy that
-  checks the user's effective group permissions.
+- **AuthZ:** permission-based via a policy provider. `[HasPermission("Users.createUser")]` maps to a policy that
+  checks the user's effective group permissions. Permission codes bind to controller action methods (see §7).
 - **Tenant isolation:** enforced at the data layer (global query filters), not just the UI. The frontend
   **global filter** (company/department selector) only narrows what an already-authorized user sees;
   it never widens access. SuperAdmin / cross-company managers see multiple tenants and can switch context.

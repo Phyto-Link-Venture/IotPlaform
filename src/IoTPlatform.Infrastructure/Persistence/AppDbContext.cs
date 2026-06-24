@@ -33,7 +33,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     // IoT
     public DbSet<DeviceType> DeviceTypes => Set<DeviceType>();
     public DbSet<Device> Devices => Set<Device>();
-    public DbSet<Sensor> Sensors => Set<Sensor>();
     public DbSet<TelemetryData> TelemetryData => Set<TelemetryData>();
     public DbSet<DeviceCommand> DeviceCommands => Set<DeviceCommand>();
 

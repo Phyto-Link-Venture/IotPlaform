@@ -42,12 +42,12 @@ public sealed class DeviceAiTools(AppDbContext db)
             .Where(t => t.DeviceId == device.Id)
             .OrderByDescending(t => t.Timestamp)
             .Take(limit)
-            .Select(t => new { t.SensorId, t.Value, t.Timestamp })
+            .Select(t => new { t.DataNameSymbol, t.Value, t.Timestamp })
             .ToListAsync(cancellationToken);
 
         if (readings.Count == 0)
             return $"No telemetry recorded for device '{deviceKey}'.";
 
-        return string.Join("\n", readings.Select(r => $"{r.Timestamp:u}: sensor {r.SensorId} = {r.Value}"));
+        return string.Join("\n", readings.Select(r => $"{r.Timestamp:u}: {r.DataNameSymbol} = {r.Value}"));
     }
 }

@@ -15,6 +15,5 @@ public class Device : TenantEntity
     public DateTimeOffset? LastSeenAt { get; set; }
 
     public DeviceType DeviceType { get; set; } = null!;
-    public ICollection<Sensor> Sensors { get; set; } = new List<Sensor>();
     public ICollection<DeviceCommand> Commands { get; set; } = new List<DeviceCommand>();
 }

@@ -318,7 +318,7 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
                     module_id = table.Column<Guid>(type: "uuid", nullable: false),
                     code = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     name = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    action = table.Column<int>(type: "integer", nullable: false),
+                    action_method = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     created_by = table.Column<Guid>(type: "uuid", nullable: true),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
@@ -399,28 +399,23 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "sensors",
+                name: "telemetry_data",
                 columns: table => new
                 {
-                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     device_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    sensor_type = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
-                    name = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
-                    unit = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: true),
-                    is_active = table.Column<bool>(type: "boolean", nullable: false),
-                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    created_by = table.Column<Guid>(type: "uuid", nullable: true),
-                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    updated_by = table.Column<Guid>(type: "uuid", nullable: true),
-                    is_deleted = table.Column<bool>(type: "boolean", nullable: false),
-                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    deleted_by = table.Column<Guid>(type: "uuid", nullable: true)
+                    data_name_symbol = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
+                    value = table.Column<double>(type: "double precision", nullable: false),
+                    raw_payload = table.Column<string>(type: "text", nullable: true),
+                    timestamp = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    metadata = table.Column<string>(type: "jsonb", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_sensors", x => x.id);
+                    table.PrimaryKey("pk_telemetry_data", x => x.id);
                     table.ForeignKey(
-                        name: "fk_sensors_devices_device_id",
+                        name: "fk_telemetry_data_devices_device_id",
                         column: x => x.device_id,
                         principalTable: "devices",
                         principalColumn: "id",
@@ -487,36 +482,6 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
                         name: "fk_user_group_permissions_user_groups_user_group_id",
                         column: x => x.user_group_id,
                         principalTable: "user_groups",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "telemetry_data",
-                columns: table => new
-                {
-                    id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    device_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    sensor_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    value = table.Column<double>(type: "double precision", nullable: false),
-                    raw_payload = table.Column<string>(type: "text", nullable: true),
-                    timestamp = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    metadata = table.Column<string>(type: "jsonb", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("pk_telemetry_data", x => x.id);
-                    table.ForeignKey(
-                        name: "fk_telemetry_data_devices_device_id",
-                        column: x => x.device_id,
-                        principalTable: "devices",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "fk_telemetry_data_sensors_sensor_id",
-                        column: x => x.sensor_id,
-                        principalTable: "sensors",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -607,24 +572,14 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
                 column: "module_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_sensors_device_id_sensor_type",
-                table: "sensors",
-                columns: new[] { "device_id", "sensor_type" });
-
-            migrationBuilder.CreateIndex(
                 name: "ix_system_logs_level_timestamp",
                 table: "system_logs",
                 columns: new[] { "level", "timestamp" });
 
             migrationBuilder.CreateIndex(
-                name: "ix_telemetry_data_device_id_sensor_id_timestamp",
+                name: "ix_telemetry_data_device_id_data_name_symbol_timestamp",
                 table: "telemetry_data",
-                columns: new[] { "device_id", "sensor_id", "timestamp" });
-
-            migrationBuilder.CreateIndex(
-                name: "ix_telemetry_data_sensor_id",
-                table: "telemetry_data",
-                column: "sensor_id");
+                columns: new[] { "device_id", "data_name_symbol", "timestamp" });
 
             migrationBuilder.CreateIndex(
                 name: "ix_user_group_members_user_group_id",
@@ -699,7 +654,7 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
                 name: "ai_conversations");
 
             migrationBuilder.DropTable(
-                name: "sensors");
+                name: "devices");
 
             migrationBuilder.DropTable(
                 name: "users");
@@ -711,16 +666,13 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
                 name: "user_groups");
 
             migrationBuilder.DropTable(
-                name: "devices");
+                name: "device_types");
 
             migrationBuilder.DropTable(
                 name: "modules");
 
             migrationBuilder.DropTable(
                 name: "departments");
-
-            migrationBuilder.DropTable(
-                name: "device_types");
 
             migrationBuilder.DropTable(
                 name: "companies");

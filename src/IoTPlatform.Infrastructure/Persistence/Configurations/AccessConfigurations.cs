@@ -20,6 +20,7 @@ public sealed class PermissionConfiguration : IEntityTypeConfiguration<Permissio
     {
         builder.Property(p => p.Code).HasMaxLength(128).IsRequired();
         builder.Property(p => p.Name).HasMaxLength(128).IsRequired();
+        builder.Property(p => p.ActionMethod).HasMaxLength(128).IsRequired();
         builder.HasOne(p => p.Module)
             .WithMany(m => m.Permissions)
             .HasForeignKey(p => p.ModuleId)

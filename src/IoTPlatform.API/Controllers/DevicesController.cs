@@ -16,7 +16,7 @@ public sealed class DevicesController(AppDbContext db) : ControllerBase
     /// active company automatically; department scope is applied on top when selected.
     /// </summary>
     [HttpGet]
-    [HasPermission(Permissions.Device.View)]
+    [HasPermission(Permissions.Devices.List)]
     public async Task<ActionResult<IReadOnlyList<DeviceDto>>> List(CancellationToken cancellationToken)
     {
         var departmentId = db.TenantContext.DepartmentId;

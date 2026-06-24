@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace IoTPlatform.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260623033955_InitialCreate")]
+    [Migration("20260624040532_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -97,9 +97,11 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<int>("Action")
-                        .HasColumnType("integer")
-                        .HasColumnName("action");
+                    b.Property<string>("ActionMethod")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("action_method");
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -711,75 +713,6 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
                     b.ToTable("device_types", (string)null);
                 });
 
-            modelBuilder.Entity("IoTPlatform.Models.Entities.Iot.Sensor", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created_by");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<Guid?>("DeletedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("deleted_by");
-
-                    b.Property<Guid>("DeviceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("device_id");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("SensorType")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("sensor_type");
-
-                    b.Property<string>("Unit")
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("unit");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("updated_by");
-
-                    b.HasKey("Id")
-                        .HasName("pk_sensors");
-
-                    b.HasIndex("DeviceId", "SensorType")
-                        .HasDatabaseName("ix_sensors_device_id_sensor_type");
-
-                    b.ToTable("sensors", (string)null);
-                });
-
             modelBuilder.Entity("IoTPlatform.Models.Entities.Iot.TelemetryData", b =>
                 {
                     b.Property<long>("Id")
@@ -788,6 +721,12 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("DataNameSymbol")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("data_name_symbol");
 
                     b.Property<Guid>("DeviceId")
                         .HasColumnType("uuid")
@@ -801,10 +740,6 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("raw_payload");
 
-                    b.Property<Guid>("SensorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("sensor_id");
-
                     b.Property<DateTimeOffset>("Timestamp")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("timestamp");
@@ -816,11 +751,8 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_telemetry_data");
 
-                    b.HasIndex("SensorId")
-                        .HasDatabaseName("ix_telemetry_data_sensor_id");
-
-                    b.HasIndex("DeviceId", "SensorId", "Timestamp")
-                        .HasDatabaseName("ix_telemetry_data_device_id_sensor_id_timestamp");
+                    b.HasIndex("DeviceId", "DataNameSymbol", "Timestamp")
+                        .HasDatabaseName("ix_telemetry_data_device_id_data_name_symbol_timestamp");
 
                     b.ToTable("telemetry_data", (string)null);
                 });
@@ -1344,18 +1276,6 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
                     b.Navigation("Device");
                 });
 
-            modelBuilder.Entity("IoTPlatform.Models.Entities.Iot.Sensor", b =>
-                {
-                    b.HasOne("IoTPlatform.Models.Entities.Iot.Device", "Device")
-                        .WithMany("Sensors")
-                        .HasForeignKey("DeviceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_sensors_devices_device_id");
-
-                    b.Navigation("Device");
-                });
-
             modelBuilder.Entity("IoTPlatform.Models.Entities.Iot.TelemetryData", b =>
                 {
                     b.HasOne("IoTPlatform.Models.Entities.Iot.Device", "Device")
@@ -1365,16 +1285,7 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_telemetry_data_devices_device_id");
 
-                    b.HasOne("IoTPlatform.Models.Entities.Iot.Sensor", "Sensor")
-                        .WithMany("Telemetry")
-                        .HasForeignKey("SensorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_telemetry_data_sensors_sensor_id");
-
                     b.Navigation("Device");
-
-                    b.Navigation("Sensor");
                 });
 
             modelBuilder.Entity("IoTPlatform.Models.Entities.Tenancy.Department", b =>
@@ -1451,18 +1362,11 @@ namespace IoTPlatform.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("IoTPlatform.Models.Entities.Iot.Device", b =>
                 {
                     b.Navigation("Commands");
-
-                    b.Navigation("Sensors");
                 });
 
             modelBuilder.Entity("IoTPlatform.Models.Entities.Iot.DeviceType", b =>
                 {
                     b.Navigation("Devices");
-                });
-
-            modelBuilder.Entity("IoTPlatform.Models.Entities.Iot.Sensor", b =>
-                {
-                    b.Navigation("Telemetry");
                 });
 
             modelBuilder.Entity("IoTPlatform.Models.Entities.Tenancy.Company", b =>

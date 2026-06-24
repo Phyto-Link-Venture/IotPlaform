@@ -1,3 +1,4 @@
+using IoTPlatform.Common.Constants;
 using IoTPlatform.Models.Entities.Iot;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -29,37 +30,21 @@ public sealed class DeviceConfiguration : IEntityTypeConfiguration<Device>
     }
 }
 
-public sealed class SensorConfiguration : IEntityTypeConfiguration<Sensor>
-{
-    public void Configure(EntityTypeBuilder<Sensor> builder)
-    {
-        builder.Property(s => s.SensorType).HasMaxLength(64).IsRequired();
-        builder.Property(s => s.Name).HasMaxLength(128).IsRequired();
-        builder.Property(s => s.Unit).HasMaxLength(32);
-        builder.HasOne(s => s.Device)
-            .WithMany(d => d.Sensors)
-            .HasForeignKey(s => s.DeviceId)
-            .OnDelete(DeleteBehavior.Cascade);
-        builder.HasIndex(s => new { s.DeviceId, s.SensorType });
-    }
-}
-
 public sealed class TelemetryDataConfiguration : IEntityTypeConfiguration<TelemetryData>
 {
     public void Configure(EntityTypeBuilder<TelemetryData> builder)
     {
         builder.HasKey(t => t.Id);
+        builder.Property(t => t.DataNameSymbol)
+            .HasMaxLength(TelemetryConventions.DataNameSymbolMaxLength)
+            .IsRequired();
         builder.Property(t => t.Metadata).HasColumnType("jsonb");
         builder.HasOne(t => t.Device)
             .WithMany()
             .HasForeignKey(t => t.DeviceId)
             .OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(t => t.Sensor)
-            .WithMany(s => s.Telemetry)
-            .HasForeignKey(t => t.SensorId)
-            .OnDelete(DeleteBehavior.Cascade);
-        // Primary time-series access path.
-        builder.HasIndex(t => new { t.DeviceId, t.SensorId, t.Timestamp });
+        // Primary time-series access path: telemetry posts directly at the device level.
+        builder.HasIndex(t => new { t.DeviceId, t.DataNameSymbol, t.Timestamp });
     }
 }
 
