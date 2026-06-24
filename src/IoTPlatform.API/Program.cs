@@ -81,10 +81,17 @@ builder.Services.AddCors(options => options.AddPolicy(FrontendCors, policy => po
     .AllowAnyMethod()
     .AllowCredentials()));
 
-// --- API + Swagger ---
+// --- API + OpenAPI (Swagger) ---
+// OpenAPI spec exposed at /swagger/v1/openapi.json for Kiota code generation.
+// Swagger UI only available in Development.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(o => o.SwaggerDoc("v1", new()
+{
+    Title = "IoTPlatform API",
+    Version = "v1",
+    Description = "Multi-tenant IoT platform: device management, telemetry ingestion, AI assistant, MCP integration.",
+}));
 
 // --- MCP server (external LLM integration). Tools reuse the platform services. ---
 builder.Services.AddMcpServer()
@@ -95,10 +102,13 @@ var app = builder.Build();
 
 app.UseSerilogRequestLogging();
 
+// Expose OpenAPI spec at /swagger/openapi.json for client code generation.
+// In Development, also expose Swagger UI at /swagger/index.html.
+app.UseSwagger(options => options.RouteTemplate = "swagger/{documentName}/openapi.json");
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/openapi.json", "IoTPlatform API v1"));
 }
 
 app.UseCors(FrontendCors);
