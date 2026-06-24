@@ -28,11 +28,11 @@ export function createApiClient(requestAdapter: RequestAdapter) {
     const parseNodeFactoryRegistry = requestAdapter.getParseNodeFactory() as ParseNodeFactoryRegistry;
     const backingStoreFactory = requestAdapter.getBackingStoreFactory();
 
-    // @ts-expect-error - TS2774: False positive for method existence check in generated code
+    // @ts-expect-error: False positive for method existence check (TS2774)
     if (parseNodeFactoryRegistry.registerDefaultDeserializer) {
     }
 
-    // @ts-expect-error - TS2774: False positive for method existence check in generated code
+    // @ts-expect-error: False positive for method existence check (TS2774)
     if (serializationWriterFactory.registerDefaultSerializer) {
     }
     
